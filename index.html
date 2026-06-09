@@ -628,6 +628,21 @@ class Game {
       }
     }
 
+    // Draw powerups
+    for (const pu of this.powerups) {
+      const flash = Math.sin(this.frameCount * 0.1) * 0.3 + 0.7;
+      ctx.globalAlpha = flash;
+      ctx.fillStyle = pu.colors[pu.type];
+      ctx.fillRect(pu.x + 2, pu.y + 2, T - 4, T - 4);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      const label = pu.type === 'speed' ? 'S' : pu.type === 'shield' ? 'D' : 'R';
+      ctx.fillText(label, pu.x + T / 2, pu.y + T / 2 + 3);
+      ctx.textAlign = 'start';
+    }
+
     // Draw tanks
     const drawTank = (tank) => {
       if (!tank || !tank.alive) return;
