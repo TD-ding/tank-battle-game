@@ -437,6 +437,17 @@ class Game {
       }
       if (hitWall) { b.alive = false; continue; }
 
+      // Bullet vs bullet
+      for (const ob of this.bullets) {
+        if (ob === b || !ob.alive || ob.owner === b.owner) continue;
+        if (b.x < ob.x + ob.w && b.x + b.w > ob.x && b.y < ob.y + ob.h && b.y + b.h > ob.y) {
+          b.alive = false;
+          ob.alive = false;
+          this.addExplosion((b.x + ob.x) / 2, (b.y + ob.y) / 2, 'small');
+        }
+      }
+      if (!b.alive) continue;
+
       // Bullet vs tank
       const allTanks = [this.player, ...this.enemies];
       for (const tank of allTanks) {
@@ -453,6 +464,7 @@ class Game {
               this.score += 100;
             } else {
               this.lives--;
+              this.playerRespawnTimer = CFG.PLAYER_RESPAWN_DELAY;
             }
           }
         }
