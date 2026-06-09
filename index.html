@@ -37,6 +37,38 @@
   </div>
   <div id="info">WASD / 方向键移动 | 空格 / J 射击 | P 暂停</div>
 
+  <!-- Mobile touch controls -->
+  <div id="touchControls" style="display:none; margin-top:16px; gap:4px;">
+    <div style="display:flex; justify-content:center; gap:4px;">
+      <div></div>
+      <button class="tbtn" ontouchstart="touchDir(0)" ontouchend="touchEnd()">&#9650;</button>
+      <div></div>
+    </div>
+    <div style="display:flex; justify-content:center; gap:4px;">
+      <button class="tbtn" ontouchstart="touchDir(3)" ontouchend="touchEnd()">&#9664;</button>
+      <button class="tbtn" ontouchstart="touchDir(2)" ontouchend="touchEnd()">&#9660;</button>
+      <button class="tbtn" ontouchstart="touchDir(1)" ontouchend="touchEnd()">&#9654;</button>
+    </div>
+    <div style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
+      <button class="tbtn" style="width:120px; background:#553;" ontouchstart="touchFire()">射击</button>
+    </div>
+  </div>
+  <style>
+    .tbtn { width:52px; height:52px; font-size:22px; cursor:pointer; background:#333; color:#fff; border:2px solid #555; font-family:inherit; border-radius:8px; user-select:none; -webkit-user-select:none; }
+    .tbtn:active { background:#555; }
+    @media (pointer: coarse) { #touchControls { display:flex !important; flex-direction:column; } }
+  </style>
+
+  <script>
+  function touchDir(d) {
+    const dirs = ['ArrowUp','ArrowRight','ArrowDown','ArrowLeft'];
+    game.keys[dirs[d]] = true;
+  }
+  function touchEnd() {
+    ['ArrowUp','ArrowRight','ArrowDown','ArrowLeft'].forEach(k => game.keys[k] = false);
+  }
+  function touchFire() { game.keys['Space'] = true; setTimeout(() => game.keys['Space'] = false, 100); }
+  </script>
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -65,6 +97,8 @@ const CFG = {
   SHIELD_DURATION: 120,
   PLAYER_RESPAWN_DELAY: 60,
   MAX_LEVEL: 3,
+  POWERUP_DURATION: 300,
+  POWERUP_SPAWN_CHANCE: 0.002,
   EXPLOSION_SMALL: 6,
   EXPLOSION_BIG: 12,
   COLORS: {
@@ -138,6 +172,7 @@ class Game {
     this.state = 'menu';
     this.player = null;
     this.enemies = [];
+    this.powerups = [];
     this.bullets = [];
     this.particles = [];
     this.map = [];
@@ -202,6 +237,7 @@ class Game {
     this.bullets = [];
     this.particles = [];
     this.enemies = [];
+    this.powerups = [];
     this.baseAlive = true;
     this.enemyQueue = [];
     this.spawnTimer = 0;
@@ -334,11 +370,35 @@ class Game {
     enemy.moveTimer++;
     if (enemy.moveTimer > CFG.ENEMY_AI_CHANGE_DIR_MIN + Math.random() * CFG.ENEMY_AI_CHANGE_DIR_RANGE) {
       enemy.moveTimer = 0;
-      enemy.moveDecision = Math.floor(Math.random() * 4);
+      // Prefer moving toward the player/base
+      if (this.player && this.player.alive && Math.random() < 0.4) {
+        const dx = this.player.x - enemy.x;
+        const dy = this.player.y - enemy.y;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          enemy.moveDecision = dx > 0 ? DIR.RIGHT : DIR.LEFT;
+        } else {
+          enemy.moveDecision = dy > 0 ? DIR.DOWN : DIR.UP;
+        }
+      } else {
+        enemy.moveDecision = Math.floor(Math.random() * 4);
+      }
     }
     this.tryMove(enemy, enemy.moveDecision);
     if (Math.random() < CFG.ENEMY_AI_TURN_CHANCE) {
       enemy.moveDecision = Math.floor(Math.random() * 4);
+    }
+    // Shoot when facing player direction
+    if (Math.random() < CFG.ENEMY_AI_SHOOT_CHANCE * 2) {
+      if (this.player && this.player.alive) {
+        const dx = this.player.x - enemy.x;
+        const dy = this.player.y - enemy.y;
+        const shouldShoot =
+          (enemy.dir === DIR.UP && dy < 0 && Math.abs(dx) < T * 2) ||
+          (enemy.dir === DIR.DOWN && dy > 0 && Math.abs(dx) < T * 2) ||
+          (enemy.dir === DIR.LEFT && dx < 0 && Math.abs(dy) < T * 2) ||
+          (enemy.dir === DIR.RIGHT && dx > 0 && Math.abs(dy) < T * 2);
+        if (shouldShoot) this.fire(enemy);
+      }
     }
     if (Math.random() < CFG.ENEMY_AI_SHOOT_CHANCE) {
       this.fire(enemy);
@@ -428,7 +488,8 @@ class Game {
     if (!this.player || !this.player.alive) {
       if (this.playerRespawnTimer > 0) {
         this.playerRespawnTimer--;
-      } else if (this.lives > 0) {
+      } else if (this.playerRespawnTimer === 0 && this.lives > 0) {
+        this.playerRespawnTimer = -1;
         this.player = this.createTank(8 * T, 24 * T, DIR.UP, 'player');
         this.player.shieldTimer = CFG.SHIELD_DURATION;
       }
