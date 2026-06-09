@@ -83,7 +83,7 @@ const CFG = {
     EXPLOSION: ['#ff0', '#f80', '#f00'],
   },
 };
-const T = CFG.TILE;
+const T = CFG.T;
 const COLS = CFG.COLS;
 const ROWS = CFG.ROWS;
 const W = COLS * T;
@@ -511,26 +511,26 @@ class Game {
         const t = this.map[r][c];
         const x = c * T, y = r * T;
         if (t === BRICK) {
-          ctx.fillStyle = '#b55';
+          ctx.fillStyle = CFG.COLORS.BRICK;
           ctx.fillRect(x, y, T, T);
-          ctx.fillStyle = '#833';
+          ctx.fillStyle = CFG.COLORS.BRICK_DARK;
           ctx.fillRect(x, y, T / 2, T / 2);
           ctx.fillRect(x + T / 2, y + T / 2, T / 2, T / 2);
         } else if (t === STEEL) {
-          ctx.fillStyle = '#aaa';
+          ctx.fillStyle = CFG.COLORS.STEEL;
           ctx.fillRect(x, y, T, T);
-          ctx.fillStyle = '#888';
+          ctx.fillStyle = CFG.COLORS.STEEL_DARK;
           ctx.fillRect(x + 1, y + 1, T - 2, T - 2);
         } else if (t === WATER) {
-          ctx.fillStyle = '#26c';
+          ctx.fillStyle = CFG.COLORS.WATER;
           ctx.fillRect(x, y, T, T);
         } else if (t === BASE) {
-          ctx.fillStyle = '#ff0';
+          ctx.fillStyle = CFG.COLORS.BASE_ALIVE;
           ctx.fillRect(x, y, T, T);
-          ctx.fillStyle = '#aa0';
+          ctx.fillStyle = CFG.COLORS.BASE_INNER;
           ctx.fillRect(x + 4, y + 4, T - 8, T - 8);
         } else if (t === BASE_DEAD) {
-          ctx.fillStyle = '#555';
+          ctx.fillStyle = CFG.COLORS.BASE_DEAD;
           ctx.fillRect(x, y, T, T);
         }
       }
@@ -584,7 +584,7 @@ class Game {
     // Draw bullets
     for (const b of this.bullets) {
       if (!b.alive) continue;
-      ctx.fillStyle = b.owner === 'player' ? '#ff0' : '#f80';
+      ctx.fillStyle = b.owner === 'player' ? CFG.COLORS.BULLET_PLAYER : CFG.COLORS.BULLET_ENEMY;
       ctx.fillRect(b.x, b.y, b.w, b.h);
     }
 
