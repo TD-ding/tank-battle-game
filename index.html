@@ -25,6 +25,7 @@
     <div class="hud-item">关卡: <span id="level">1</span></div>
     <div class="hud-item">生命: <span id="lives">3</span></div>
     <div class="hud-item">敌人: <span id="enemies">0</span></div>
+    <div class="hud-item">最高分: <span id="highScore">0</span></div>
   </div>
   <div style="position:relative;">
     <canvas id="game" width="520" height="520"></canvas>
@@ -244,6 +245,7 @@ class Game {
     document.getElementById('level').textContent = this.level;
     document.getElementById('lives').textContent = this.lives;
     document.getElementById('enemies').textContent = this.enemyQueue.length + this.enemies.filter(e => e.alive).length;
+    document.getElementById('highScore').textContent = this.highScore;
   }
 
   tileAt(r, c) {
@@ -581,11 +583,15 @@ class Game {
     drawTank(this.player);
     for (const e of this.enemies) drawTank(e);
 
-    // Draw bullets
+    // Draw bullets with glow
     for (const b of this.bullets) {
       if (!b.alive) continue;
-      ctx.fillStyle = b.owner === 'player' ? CFG.COLORS.BULLET_PLAYER : CFG.COLORS.BULLET_ENEMY;
+      const bColor = b.owner === 'player' ? CFG.COLORS.BULLET_PLAYER : CFG.COLORS.BULLET_ENEMY;
+      ctx.shadowColor = bColor;
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = bColor;
       ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.shadowBlur = 0;
     }
 
     // Draw particles
