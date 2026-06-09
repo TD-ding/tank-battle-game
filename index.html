@@ -461,6 +461,34 @@ class Game {
     this.bullets = this.bullets.filter(b => b.alive);
   }
 
+  spawnPowerup() {
+    if (this.powerups.length >= 2) return;
+    if (Math.random() > CFG.POWERUP_SPAWN_CHANCE) return;
+    const types = ['speed', 'shield', 'rapid'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    const px = (2 + Math.floor(Math.random() * (COLS - 4))) * T;
+    const py = (2 + Math.floor(Math.random() * (ROWS - 4))) * T;
+    if (this.tileAt(Math.floor(py / T), Math.floor(px / T)) !== EMPTY) return;
+    this.powerups.push({ x: px, y: py, type, life: CFG.POWERUP_DURATION, colors: { speed: '#0ff', shield: '#0f0', rapid: '#f0f' } });
+  }
+
+  updatePowerups() {
+    this.spawnPowerup();
+    for (const pu of this.powerups) pu.life--;
+    this.powerups = this.powerups.filter(pu => pu.life > 0);
+    if (!this.player || !this.player.alive) return;
+    const p = this.player;
+    for (const pu of this.powerups) {
+      if (p.x < pu.x + T && p.x + p.w > pu.x && p.y < pu.y + T && p.y + p.h > pu.y) {
+        if (pu.type === 'speed') p.speed = CFG.PLAYER_SPEED * 1.8;
+        else if (pu.type === 'shield') p.shieldTimer = CFG.SHIELD_DURATION;
+        else if (pu.type === 'rapid') p.fireRate = Math.floor(CFG.PLAYER_FIRE_RATE / 3);
+        pu.life = 0;
+        this.addExplosion(pu.x + T / 2, pu.y + T / 2, 'small');
+      }
+    }
+  }
+
   addExplosion(x, y, size) {
     const count = size === 'big' ? CFG.EXPLOSION_BIG : CFG.EXPLOSION_SMALL;
     for (let i = 0; i < count; i++) {
@@ -600,6 +628,21 @@ class Game {
       }
     }
 
+    // Draw powerups
+    for (const pu of this.powerups) {
+      const flash = Math.sin(this.frameCount * 0.1) * 0.3 + 0.7;
+      ctx.globalAlpha = flash;
+      ctx.fillStyle = pu.colors[pu.type];
+      ctx.fillRect(pu.x + 2, pu.y + 2, T - 4, T - 4);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      const label = pu.type === 'speed' ? 'S' : pu.type === 'shield' ? 'D' : 'R';
+      ctx.fillText(label, pu.x + T / 2, pu.y + T / 2 + 3);
+      ctx.textAlign = 'start';
+    }
+
     // Draw tanks
     const drawTank = (tank) => {
       if (!tank || !tank.alive) return;
@@ -644,6 +687,26 @@ class Game {
 
     drawTank(this.player);
     for (const e of this.enemies) drawTank(e);
+
+    // Draw powerups
+    for (const pu of this.powerups) {
+      const blink = pu.life < 60 ? Math.sin(pu.life * 0.3) > 0 : true;
+      if (!blink) continue;
+      const color = pu.colors[pu.type];
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.8;
+      ctx.fillRect(pu.x, pu.y, T, T);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(pu.x, pu.y, T, T);
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px Courier New';
+      ctx.textAlign = 'center';
+      const labels = { speed: 'S', shield: 'H', rapid: 'R' };
+      ctx.fillText(labels[pu.type], pu.x + T / 2, pu.y + T / 2 + 3);
+      ctx.textAlign = 'start';
+    }
 
     // Draw bullets with glow
     for (const b of this.bullets) {
